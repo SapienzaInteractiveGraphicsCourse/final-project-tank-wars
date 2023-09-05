@@ -1,6 +1,7 @@
 import * as BABYLON from 'babylonjs';
 import HavokPhysics from './physics/HavokPhysics_es';
 
+import Obstacles from './obstacles';
 
 let btn = document.getElementById('startBtn');
 btn.addEventListener('click', () => {
@@ -67,6 +68,10 @@ btn.addEventListener('click', () => {
     }, scene);
 
     BABYLON.GUI
+
+    // Create obstacles
+    scene.obstacles = new Obstacles(scene, shadowGenerator);
+
       return scene;
   }
 
