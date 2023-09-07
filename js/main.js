@@ -2,6 +2,7 @@ import * as BABYLON from 'babylonjs';
 import HavokPhysics from './physics/HavokPhysics_es';
 
 import Obstacles from './obstacles';
+import Tank from './tank';
 
 let btn = document.getElementById('startBtn');
 btn.addEventListener('click', () => {
@@ -71,6 +72,9 @@ btn.addEventListener('click', () => {
 
     // Create obstacles
     scene.obstacles = new Obstacles(scene, shadowGenerator);
+    
+    // Create tank
+    scene.playerTank = new Tank("player", new BABYLON.Vector3(0, 2, 10), scene, shadowGenerator, true, canvas);
 
       return scene;
   }
