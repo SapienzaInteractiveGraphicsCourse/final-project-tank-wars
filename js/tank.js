@@ -132,6 +132,210 @@ class Tank {
 
     }
 
+     createBullet() {
+
+        let bullet = BABYLON.MeshBuilder.CreateCylinder("bullet", { diameter: 0.2, height: 0.8 }, this.scene);
+        bullet.material = new BABYLON.StandardMaterial("bulletMaterial", this.scene);
+        bullet.material.diffuseColor = new BABYLON.Color3(1, 0.95, 0.5); 
+        this.shadowGenerator.addShadowCaster(bullet);
+
+        let gun = this.tank.getChildTransformNodes()[2].getChildTransformNodes()[0].getChildTransformNodes()[0]; //take the last part of the gun
+
+        // get the absolute rotation of the gun
+        let gunQuaternion = gun.absoluteRotationQuaternion;
+        bullet.rotationQuaternion = gunQuaternion.clone();
+
+        let bulletOffset = gun.getDirection(new BABYLON.Vector3(0, 2, 0)).scale(1);  
+        bullet.position = gun.getAbsolutePosition().add(bulletOffset);
+        
+
+        bullet.aggregate = new BABYLON.PhysicsAggregate(bullet, BABYLON.PhysicsShapeType.CYLINDER, {
+            mass: 1
+        }, this.scene);
+        bullet.physicsBody = bullet.aggregate.body;
+        
+        //applay a force to shoot the bullet
+        let forceDirection = bullet.getDirection(new BABYLON.Vector3(0, 1, 0));
+        bullet.physicsBody.applyImpulse(
+            forceDirection.scale(100),
+            bullet.getAbsolutePosition()
+        );
+
+        // Add a recoil to the tank when the bullet is fired
+        // the effect is that the tank move back
+        let recoilForce = forceDirection.scale(-20);
+        this.tank.physicsBody.applyImpulse(
+            recoilForce,
+            this.tank.getAbsolutePosition()
+        );
+        // Add a reverse "recoil" effect after a short delay
+        // the effect is that the tank move on
+        setTimeout(() => {
+            if (this.tank && this.tank.health > 0) {
+                
+                let recoilForceBack = forceDirection.scale(18);
+                this.tank.physicsBody.applyImpulse(
+                    recoilForceBack,
+                    this.tank.getAbsolutePosition()
+                );
+            }
+        }, 100);
+
+
+        bullet.physicsBody.setCollisionCallbackEnabled(true);
+
+        // You have two options:
+        // Body-specific callback
+        const observable = bullet.physicsBody.getCollisionObservable();
+        const observer = observable.add((collisionEvent) => {
+            //eliminate bullet
+            bullet.physicsBody.setCollisionCallbackEnabled(false);
+            bullet.physicsBody.setLinearVelocity(new BABYLON.Vector3(0, 0, 0), bullet.getAbsolutePosition());
+            bullet.physicsBody.setAngularVelocity(new BABYLON.Vector3(0, 0, 0), bullet.getAbsolutePosition());
+            bullet.dispose();
+
+            if (collisionEvent.collidedAgainst.transformNode.name === "enemy" || collisionEvent.collidedAgainst.transformNode.name === "player") {
+                collisionEvent.collidedAgainst.transformNode.health -= 10;
+            }
+        });
+    }
+    translate(mesh, direction, power) {
+
+        let velocity = new BABYLON.Vector3(0, 0, 0);
+        mesh.physicsBody.getLinearVelocityToRef(velocity);
+
+        if (velocity.length() > this.maxTankSpeed) {
+            return;
+        }
+
+        mesh.physicsBody.setLinearVelocity(
+            this.transformForce(mesh, direction.scale(power)).add(velocity),
+            mesh.getAbsolutePosition()
+        );
+    }
+
+    //this function permit to brake (frenare) 
+    applyBreak(mesh, power) {
+        if (this.tank.health <= 0) {
+            return;
+        }
+
+        let velocity = new BABYLON.Vector3(0, 0, 0);
+        mesh.physicsBody.getLinearVelocityToRef(velocity);
+        //change velocity direction
+        velocity.scaleInPlace(-1);
+        //permit to have a constant decelleration
+        velocity.normalize();
+        //increase decelleration:  velocity * power
+        velocity.scaleInPlace(power);
+        //start the decelleration
+        mesh.physicsBody.applyImpulse(
+            velocity,
+            mesh.getAbsolutePosition()
+        );
+    }
+
+    //calculates the transformed three-dimensional force vector based on the rotation of a mesh
+    transformForce(mesh, vec) {
+       
+        var mymatrix = new BABYLON.Matrix();
+        mesh.rotationQuaternion.toRotationMatrix(mymatrix);
+        return BABYLON.Vector3.TransformNormal(vec, mymatrix);
+    };
+
+    rotate(mesh, direction, power) {
+        
+
+        let velocity = new BABYLON.Vector3(0, 0, 0);
+        // Get the current angular velocity of the mesh and store it in the "velocity" vector.
+        mesh.physicsBody.getAngularVelocityToRef(velocity);
+
+        if (velocity.length() > this.maxRotationSpeed) {
+            return;
+        }
+        //compute the angular force and add it with the current angular velocity
+        mesh.physicsBody.setAngularVelocity(
+            this.transformForce(mesh, direction.scale(power)).add(velocity),
+            mesh.getAbsolutePosition()
+        );
+    }
+
+    update(mf, mb, rl, rr, br, isShoot) {
+        //linear
+        let v1 = new BABYLON.Vector3(0, 0, 0);
+        //angular
+        let v2 = new BABYLON.Vector3(0, 0, 0);
+
+        this.tank.physicsBody.getLinearVelocityToRef(v1);
+        this.tank.physicsBody.getAngularVelocityToRef(v2);
+
+        if (v1.length() < 0.01) {
+            this.tank.physicsBody.setLinearVelocity(new BABYLON.Vector3(0, 0, 0), this.tank.getAbsolutePosition());
+        }
+        if (v2.length() < 0.01) {
+            this.tank.physicsBody.setAngularVelocity(new BABYLON.Vector3(0, 0, 0), this.tank.getAbsolutePosition());
+        }
+
+        if (mf) {
+            this.tank.direction = 1;
+            this.translate(this.tank, new BABYLON.Vector3(0, 0, 1), this.tankSpeed);
+        }
+        if (mb) {
+            this.tank.direction = -1;
+            this.translate(this.tank, new BABYLON.Vector3(0, 0, -1), this.tankSpeed);
+        }
+        if (rr) {
+            this.rotate(this.tank, new BABYLON.Vector3(0, this.tank.direction, 0), this.rotationSpeed);
+
+            this.steeringAngle = Math.min(this.steeringAngle + this.rotationSpeed, this.maxSteeringAngle);
+            this.wheels[0].rotation.y = this.steeringAngle;
+            this.wheels[1].rotation.y = this.steeringAngle;
+            this.wheels[2].rotation.y = this.steeringAngle * 0.2;
+            this.wheels[3].rotation.y = this.steeringAngle * 0.2;
+        }
+        if (rl) {
+            this.rotate(this.tank, new BABYLON.Vector3(0, -this.tank.direction, 0), this.rotationSpeed);
+
+            this.steeringAngle = Math.max(this.steeringAngle - this.rotationSpeed, -this.maxSteeringAngle);
+            this.wheels[0].rotation.y = this.steeringAngle;
+            this.wheels[1].rotation.y = this.steeringAngle;
+            this.wheels[2].rotation.y = this.steeringAngle * 0.2;
+            this.wheels[3].rotation.y = this.steeringAngle * 0.2;
+        }
+
+        if (!rl && !rr) {
+            if (this.steeringAngle > 0) {
+                this.steeringAngle = Math.max(this.steeringAngle - this.rotationSpeed, 0);
+            } else if (this.steeringAngle < 0) {
+                this.steeringAngle = Math.min(this.steeringAngle + this.rotationSpeed, 0);
+            }
+            this.wheels[0].rotation.y = this.steeringAngle;
+            this.wheels[1].rotation.y = this.steeringAngle;
+            this.wheels[2].rotation.y = this.steeringAngle * 0.2;
+            this.wheels[3].rotation.y = this.steeringAngle * 0.2;
+        }
+
+        if (br) {
+            this.applyBreak(this.tank, this.breakForce);
+        }
+        if (isShoot) {
+            let currentTime = new Date().getTime();
+            if (currentTime - this.lastBulletTime > this.shootGap) {
+                this.lastBulletTime = currentTime;
+                this.createBullet();
+            }
+        }
+
+        let distanceMoved = BABYLON.Vector3.Distance(this.tank.position, this.tank.previousPosition);
+        let wheelRotation = distanceMoved / (this.wheels[0].getBoundingInfo().boundingBox.extendSize.z * Math.PI * 2);
+        for (let wheel of this.wheels) {
+            wheel.rotation.x += wheelRotation * this.tank.direction * 10;
+        }
+        this.tank.previousPosition = this.tank.position.clone();
+
+       
+    }
+
     
 }
 

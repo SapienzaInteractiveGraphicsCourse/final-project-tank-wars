@@ -76,6 +76,74 @@ btn.addEventListener('click', () => {
     // Create tank
     scene.playerTank = new Tank("player", new BABYLON.Vector3(0, 2, 10), scene, shadowGenerator, true, canvas);
 
+    // Tank movement variables
+    var moveForward = false;
+    var moveBackward = false;
+    var rotateLeft = false;
+    var rotateRight = false;
+    var pressBreak = false;
+    var isShoot = false;
+
+      // Event listeners for key presses
+      window.addEventListener("keydown", function (event) {
+        switch (event.keyCode) {
+          case 87: // W
+            moveForward = true;
+            break;
+          case 83: // S
+            moveBackward = true;
+            break;
+          case 65: // A
+            rotateLeft = true;
+            break;
+          case 68: // D
+            rotateRight = true;
+            break;
+          case 32: // Space
+            pressBreak = true;
+            break;
+          case 70:
+            isShoot = true;
+            break;
+        }
+      });
+
+      // Event listeners for key releases
+      window.addEventListener("keyup", function (event) {
+        switch (event.keyCode) {
+          case 87: // W
+            moveForward = false;
+            break;
+          case 83: // S
+            moveBackward = false;
+            break;
+          case 65: // A
+            rotateLeft = false;
+            break;
+          case 68: // D
+            rotateRight = false;
+            break;
+          case 32: // Space
+            pressBreak = false;
+            break;
+          case 70: // F
+            isShoot = false;
+            break;
+        }
+      });
+    
+      window.addEventListener("pointerdown", function (event) {
+        isShoot = true;
+      });
+
+      window.addEventListener("pointerup", function (event) {
+        isShoot = false;
+      });
+    
+    scene.registerBeforeRender(function () {
+      scene.playerTank.update(moveForward, moveBackward, rotateLeft, rotateRight, pressBreak, isShoot);
+    })
+    
       return scene;
   }
 
