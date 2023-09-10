@@ -143,15 +143,6 @@ btn.addEventListener('click', () => {
         isShoot = false;
       });
       
-      
-    
-    scene.registerBeforeRender(function () {
-      scene.playerTank.update(moveForward, moveBackward, rotateLeft, rotateRight, pressBreak, isShoot);
-    })
-    function createRandom(min, max) {
-      return Math.random() * (max - min) + min;
-    }
-
     function addEnemy() {
       let positionX = createRandom(-25, 25);
       let positionZ = createRandom(42, 47);
@@ -198,7 +189,27 @@ btn.addEventListener('click', () => {
       });
     }
 
-    addEnemy();
+    addEnemy();  
+    
+    scene.registerBeforeRender(function () {
+      scene.playerTank.update(moveForward, moveBackward, rotateLeft, rotateRight, pressBreak, isShoot);
+      for (let i = 0; i < scene.enemies.length; i++) {
+        scene.enemies[i].enemyTank.update(scene.enemies[i].enemyMoveForward, scene.enemies[i].enemyMoveBackward, scene.enemies[i].enemyRotateLeft, scene.enemies[i].enemyRotateRight, scene.enemies[i].enemyPressBreak, scene.enemies[i].enemyIsShoot);
+
+        if (scene.enemies[i].enemyTank.tank.health <= 0) {
+
+          scene.enemies[i].enemyTank.tank.dispose();
+          scene.enemies[i].enemyTank.advancedTexture.dispose();
+          clearInterval(scene.enemies[i].updateIntervel);
+          scene.enemies.splice(i, 1);
+        }
+      }
+    })
+    function createRandom(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    
       return scene;
   }
 
