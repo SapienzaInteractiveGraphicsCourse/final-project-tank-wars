@@ -76,6 +76,9 @@ btn.addEventListener('click', () => {
     // Create tank
     scene.playerTank = new Tank("player", new BABYLON.Vector3(0, 2, 10), scene, shadowGenerator, true, canvas);
 
+    // Create enemies
+    scene.enemies = [];
+
     // Tank movement variables
     var moveForward = false;
     var moveBackward = false;
@@ -139,11 +142,63 @@ btn.addEventListener('click', () => {
       window.addEventListener("pointerup", function (event) {
         isShoot = false;
       });
+      
+      
     
     scene.registerBeforeRender(function () {
       scene.playerTank.update(moveForward, moveBackward, rotateLeft, rotateRight, pressBreak, isShoot);
     })
-    
+    function createRandom(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function addEnemy() {
+      let positionX = createRandom(-25, 25);
+      let positionZ = createRandom(42, 47);
+      let enemy = new Tank("enemy", new BABYLON.Vector3(positionX, 2, positionZ), scene, shadowGenerator, false);
+      enemy.shootGap = Math.random() * 200 + 200;
+      let index = scene.enemies.length;
+      scene.enemies.push({
+        enemyTank: enemy,
+        enemyMoveForward: true,
+        enemyMoveBackward: false,
+        enemyRotateLeft: true,
+        enemyRotateRight: false,
+        enemyPressBreak: false,
+        enemyIsShoot: false,
+         // enemy moving in a random way
+        updateIntervel: setInterval(() => {
+          let random = Math.random();
+          if (random < 0.25) {
+            scene.enemies[index].enemyMoveForward = true;
+            scene.enemies[index].enemyMoveBackward = false;
+            scene.enemies[index].enemyRotateLeft = Math.random() < 0.2 ? true : false;
+            scene.enemies[index].enemyRotateRight = false;
+            scene.enemies[index].enemyPressBreak = false;
+          } else if (random < 0.5) {
+            scene.enemies[index].enemyMoveForward = true;
+            scene.enemies[index].enemyMoveBackward = false;
+            scene.enemies[index].enemyRotateLeft = false;
+            scene.enemies[index].enemyRotateRight = Math.random() < 0.2 ? true : false;
+            scene.enemies[index].enemyPressBreak = false;
+          } else if (random < 0.75) {
+            scene.enemies[index].enemyMoveForward = false;
+            scene.enemies[index].enemyMoveBackward = true;
+            scene.enemies[index].enemyRotateLeft = Math.random() < 0.2 ? true : false;
+            scene.enemies[index].enemyRotateRight = false;
+            scene.enemies[index].enemyPressBreak = false;
+          } else {
+            scene.enemies[index].enemyMoveForward = false;
+            scene.enemies[index].enemyMoveBackward = true;
+            scene.enemies[index].enemyRotateLeft = false;
+            scene.enemies[index].enemyRotateRight = Math.random() < 0.2 ? true : false;
+            scene.enemies[index].enemyPressBreak = false;
+          }
+        }, 5000)
+      });
+    }
+
+    addEnemy();
       return scene;
   }
 
