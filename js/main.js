@@ -3,16 +3,43 @@ import HavokPhysics from './physics/HavokPhysics_es';
 
 import Obstacles from './obstacles';
 import Tank from './tank';
+class CustomLoadingScreen {
+  constructor() {
+    this._loadingDiv = document.getElementById("loadingScreen");
+    this._loadingDivProgress = document.getElementById("loadingProgress");
+  }
 
-let btn = document.getElementById('startBtn');
-btn.addEventListener('click', () => {
-  let mainDiv = document.getElementById('main');
-  mainDiv.style.display = 'none';
+  hideLoadingUI() {
+    this._loadingDiv.style.display = "none";
+
+    let healthBar = document.getElementById('healthBar');
+    let countScore = document.getElementById('countScore');
+    healthBar.style.display = 'block';
+    countScore.style.display = 'block'
+  }
+  updateProgress(value) {
+    this._loadingDivProgress.style.width = value + "%";
+  }
+}
+function startGame() { 
+  
 
   const canvas = document.getElementById('renderCanvas');
   canvas.style.display = 'block';
   const engine = new BABYLON.Engine(canvas, true);
 
+  engine.loadingScreen = new CustomLoadingScreen();
+  let loading = 0;
+  let interval = setInterval(() => {
+    loading += Math.random() * 0.1 + 0.1;
+    //update the progress on the loading screen
+    engine.loadingScreen.updateProgress(loading * 100);
+    if (loading >= 1) {
+      clearInterval(interval);
+      // hide the loading user interface
+      engine.loadingScreen.hideLoadingUI();
+    }
+  }, 1000);
 
   const createScene = async function () {
     const scene = new BABYLON.Scene(engine);
@@ -222,5 +249,16 @@ btn.addEventListener('click', () => {
       engine.resize();
     });
   });
+}
+
+let btn = document.getElementById('startBtn');
+btn.addEventListener('click', () => {
+  let mainDiv = document.getElementById('main');
+  mainDiv.style.display = 'none';
+
+  let loadingScreen = document.getElementById('loadingScreen');
+  loadingScreen.style.display = 'block';
+
+  startGame();
 
 })

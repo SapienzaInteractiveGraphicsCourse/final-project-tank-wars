@@ -130,6 +130,41 @@ class Tank {
         //Angular damping reduces the rotation velocity over time
         this.tank.physicsBody.setAngularDamping(1);
 
+        if (this.name !== "player") {
+            // Create health bar
+            const healthBarWidth = 100;
+            const healthBarHeight = 10;
+            const healthBarBackground = new Rectangle();
+            healthBarBackground.width = `${healthBarWidth}px`;
+            healthBarBackground.height = `${healthBarHeight}px`;
+            healthBarBackground.color = "black";
+            healthBarBackground.thickness = 1;
+            healthBarBackground.background = "black";
+            healthBarBackground.verticalAlignment = Rectangle.VERTICAL_ALIGNMENT_CENTER;
+            healthBarBackground.horizontalAlignment = Rectangle.HORIZONTAL_ALIGNMENT_CENTER;
+            healthBarBackground.isPointerBlocker = false; // Allow interactions with 3D scene behind the health bar
+            this.advancedTexture.addControl(healthBarBackground);
+
+            const healthBar = new Rectangle();
+            healthBar.width = "0px";
+            healthBar.height = `${healthBarHeight}px`;
+            healthBar.color = "red";
+            healthBar.thickness = 1;
+            healthBar.background = "red"
+            healthBar.verticalAlignment = Rectangle.VERTICAL_ALIGNMENT_CENTER;
+            healthBar.horizontalAlignment = Rectangle.HORIZONTAL_ALIGNMENT_LEFT;
+            healthBar.isPointerBlocker = false; // Allow interactions with 3D scene behind the health bar
+            this.advancedTexture.addControl(healthBar);
+
+            this.healthBar = healthBar;
+
+            // Adjust the health bar's position relative to the tank
+            healthBarBackground.linkWithMesh(this.tank);
+            healthBarBackground.linkOffsetY = -30;
+
+            healthBar.linkWithMesh(this.tank);
+            healthBar.linkOffsetY = -30;
+        }
     }
 
      createBullet() {
@@ -242,7 +277,19 @@ class Tank {
         mesh.rotationQuaternion.toRotationMatrix(mymatrix);
         return BABYLON.Vector3.TransformNormal(vec, mymatrix);
     };
-
+    updateHealthBar() {
+        if (this.tank.health >= 0 && this.name !== "player") {
+            const healthPercentage = this.tank.health / 100;
+            const healthBarWidth = 100; // Or any desired max width
+            const newWidth = healthBarWidth * healthPercentage;
+            this.healthBar.width = `${newWidth}px`;
+            // align it to the left
+            // Calculate the position from the left edge based on health percentage
+            const maxOffsetX = healthBarWidth / 2;
+            const currentOffsetX = maxOffsetX - (newWidth / 2);
+            this.healthBar.linkOffsetX = `-${currentOffsetX}px`;
+        }
+    }
     rotate(mesh, direction, power) {
         
 
@@ -333,7 +380,7 @@ class Tank {
         }
         this.tank.previousPosition = this.tank.position.clone();
 
-       
+       this.updateHealthBar();
     }
 
     
