@@ -129,7 +129,44 @@ class Tank {
         this.tank.physicsBody.setLinearDamping(0.5);
         //Angular damping reduces the rotation velocity over time
         this.tank.physicsBody.setAngularDamping(1);
+        // Only the player enter in this "if"
+        if (this.isGunControlled) {
+            var that = this;
+            let currentLookAt;
+            if (!this.debug) {
+                this.canvas.addEventListener("pointermove", function (event) {
+                    let pickResult = that.scene.pick(that.scene.pointerX, that.scene.pointerY);
 
+                    //it check if we are moving the mouse in the scene
+                    if (pickResult.hit) {
+                        let newLookAt = new BABYLON.Vector3(pickResult.pickedPoint.x, pickResult.pickedPoint.y, pickResult.pickedPoint.z);
+
+                        //here enter only the first time
+                        if (!currentLookAt) {
+                            currentLookAt = newLookAt;
+                        }
+
+                        // Start a loop that will interpolate the rotation over time: creates a smooth animation that rotates the tank's gun
+                        let lerpValue = 0;
+                        let lerpSpeed = 0.01;  // Adjust speed as needed
+                        const lerpLoop = () => {
+                            lerpValue += lerpSpeed;
+                            currentLookAt = BABYLON.Vector3.Lerp(currentLookAt, newLookAt, lerpValue);
+
+                            that.rotateGun(currentLookAt);
+
+                            // Stop the loop when lerpValue is equal or greater than 1
+                            if (lerpValue < 1) {
+                                requestAnimationFrame(lerpLoop);
+                            } else {
+                                currentLookAt = newLookAt;
+                            }
+                        };
+                        requestAnimationFrame(lerpLoop);
+                    }
+                });
+            }
+        }
         if (this.name !== "player") {
             // Create health bar
             const healthBarWidth = 100;
@@ -290,6 +327,35 @@ class Tank {
             this.healthBar.linkOffsetX = `-${currentOffsetX}px`;
         }
     }
+    rotateGun(lookAt) {
+        if (this.tank.health <= 0) {
+            return;
+        }
+
+        let forward = new BABYLON.Vector3(0, 0, 1);
+        //take the current rotation angle
+        let tankForward = this.tank.rotationQuaternion.toEulerAngles().y;
+        //update the direction in baseon on the rotation of the tank
+        forward = BABYLON.Vector3.TransformNormal(forward, BABYLON.Matrix.RotationAxis(BABYLON.Axis.Y, tankForward));
+
+        //direction in which the tank's gun should point
+        let direction = lookAt.subtract(this.tank.getAbsolutePosition());
+        direction.y = 0;
+        direction.normalize();
+
+        let angle = Math.acos(BABYLON.Vector3.Dot(forward, direction));
+
+        //cross is used in order to understand if the direction of mouvement is: hours,counterclockwise
+        let cross = BABYLON.Vector3.Cross(forward, direction);
+        if (cross.y < 0) angle *= -1;
+
+        if (angle < -1.2) angle = -1.2;
+        if (angle > 1.2) angle = 1.2;
+
+        // Apply the calculated rotation to the tank turret transform node.
+        this.tank.getChildTransformNodes()[2].rotation.y = angle;
+    }
+
     rotate(mesh, direction, power) {
         
 

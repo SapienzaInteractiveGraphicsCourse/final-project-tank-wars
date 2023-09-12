@@ -14,7 +14,7 @@ class CustomLoadingScreen {
 
     let healthBar = document.getElementById('healthBar');
     let countScore = document.getElementById('countScore');
-    healthBar.style.display = 'block';
+    //healthBar.style.display = 'block';
     countScore.style.display = 'block'
   }
   updateProgress(value) {
