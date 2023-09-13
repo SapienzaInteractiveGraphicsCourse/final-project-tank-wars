@@ -72,6 +72,38 @@ class Obstacles {
             OFFSET,
             new BABYLON.Vector3(1, 0, 0)
         );
+        this.createMultipleObstacles(
+            5,
+            "centerObstacles1",
+            SIZE,
+            new BABYLON.Vector3(-20, 0, 20),
+            2 * OFFSET,
+            new BABYLON.Vector3(1, 0, 1)
+        );
+        this.createMultipleObstacles(
+            5,
+            "centerObstacles2",
+            SIZE,
+            new BABYLON.Vector3(0, 0, 40),
+            2 * OFFSET,
+            new BABYLON.Vector3(1, 0, -1)
+        );
+        this.createMultipleObstacles(
+            2,
+            "centerObstacles3",
+            SIZE,
+            new BABYLON.Vector3(8, 0, 20),
+            OFFSET,
+            new BABYLON.Vector3(1, 0, 0)
+        );
+        this.createMultipleObstacles(
+            2,
+            "centerObstacles4",
+            SIZE,
+            new BABYLON.Vector3(-8, 0, 20),
+            OFFSET,
+            new BABYLON.Vector3(1, 0, 0)
+        );
     }
 
     createMultipleObstacles(count, obstacleName, size, startPosition, offset, direction) {
