@@ -12,9 +12,9 @@ class CustomLoadingScreen {
   hideLoadingUI() {
     this._loadingDiv.style.display = "none";
 
-    
+    let healthBar = document.getElementById('healthBar');
     let countScore = document.getElementById('countScore');
-  
+    //healthBar.style.display = 'block';
     countScore.style.display = 'block'
   }
   updateProgress(value) {
