@@ -327,6 +327,24 @@ class Tank {
             this.healthBar.linkOffsetX = `-${currentOffsetX}px`;
         }
     }
+
+    rotateTank(lookAt) {
+        if (this.tank.health <= 0) {
+            return;
+        }
+
+        let forward = new BABYLON.Vector3(0, 0, 1);
+        let tankForward = this.tank.rotationQuaternion.toEulerAngles().y;
+        forward = BABYLON.Vector3.TransformNormal(forward, BABYLON.Matrix.RotationAxis(BABYLON.Axis.Y, tankForward));
+
+        let direction = lookAt.subtract(this.tank.getAbsolutePosition());
+        direction.y = 0;
+        direction.normalize();
+
+        let angle = Math.acos(BABYLON.Vector3.Dot(forward, direction));
+        this.tank.physicsBody.setAngularVelocity(new BABYLON.Vector3(0, angle, 0), this.tank.getAbsolutePosition());
+    }
+
     rotateGun(lookAt) {
         if (this.tank.health <= 0) {
             return;

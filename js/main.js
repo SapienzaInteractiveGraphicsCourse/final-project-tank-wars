@@ -14,8 +14,8 @@ class CustomLoadingScreen {
 
     let healthBar = document.getElementById('healthBar');
     let countScore = document.getElementById('countScore');
-    //healthBar.style.display = 'block';
-    countScore.style.display = 'block'
+    healthBar.style.display = 'block';
+    //countScore.style.display = 'block'
   }
   updateProgress(value) {
     this._loadingDivProgress.style.width = value + "%";
@@ -169,7 +169,9 @@ function startGame() {
       window.addEventListener("pointerup", function (event) {
         isShoot = false;
       });
-      
+       function createRandom(min, max) {
+      return Math.random() * (max - min) + min;
+    }
     function addEnemy() {
       let positionX = createRandom(-25, 25);
       let positionZ = createRandom(42, 47);
@@ -216,12 +218,26 @@ function startGame() {
       });
     }
 
-    addEnemy();  
-    
+    addEnemy();
+    let currentEnemyCount = 1;
+    let globalDefeatedEnemyCount = 0;
     scene.registerBeforeRender(function () {
       scene.playerTank.update(moveForward, moveBackward, rotateLeft, rotateRight, pressBreak, isShoot);
+
+
       for (let i = 0; i < scene.enemies.length; i++) {
         scene.enemies[i].enemyTank.update(scene.enemies[i].enemyMoveForward, scene.enemies[i].enemyMoveBackward, scene.enemies[i].enemyRotateLeft, scene.enemies[i].enemyRotateRight, scene.enemies[i].enemyPressBreak, scene.enemies[i].enemyIsShoot);
+
+        let distance = BABYLON.Vector3.Distance(scene.playerTank.tank.position, scene.enemies[i].enemyTank.tank.position);
+        if (distance < Math.random() * 20 + 10) {
+          scene.enemies[i].enemyIsShoot = true;
+          // that make the enemy's gun pointing pplayer position 
+          scene.enemies[i].enemyTank.rotateGun(scene.playerTank.tank.position);
+          scene.enemies[i].enemyTank.rotateTank(scene.playerTank.tank.position);
+        }
+        else {
+          scene.enemies[i].enemyIsShoot = false;
+        }
 
         if (scene.enemies[i].enemyTank.tank.health <= 0) {
 
@@ -229,16 +245,51 @@ function startGame() {
           scene.enemies[i].enemyTank.advancedTexture.dispose();
           clearInterval(scene.enemies[i].updateIntervel);
           scene.enemies.splice(i, 1);
+          i--;
+         
+          if (scene.enemies.length == 0) {
+            if (currentEnemyCount === 1) {
+              currentEnemyCount = 2;
+              addEnemy();
+              addEnemy();
+            }
+            else if (currentEnemyCount === 2) {
+              currentEnemyCount = 3;
+              addEnemy();
+              addEnemy();
+              addEnemy();
+            }
+            else {
+              currentEnemyCount = 4;
+              addEnemy();
+              addEnemy();
+              addEnemy();
+              addEnemy();
+            }
+          }
         }
       }
-    })
-    function createRandom(min, max) {
-      return Math.random() * (max - min) + min;
-    }
 
-    
-      return scene;
-  }
+      let healthBarProgress = document.getElementById('healthBarProgress');
+      if (healthBarProgress && scene.playerTank.tank.health >= 0) {
+        healthBarProgress.style.width = scene.playerTank.tank.health + '%';
+      }
+
+      if (scene.playerTank.tank.health <= 0) {
+        // stop the babylone scene
+        engine.stopRenderLoop();
+
+        setTimeout(() => {
+
+          let healthBar = document.getElementById('healthBar');
+          healthBar.style.display = 'none';
+         
+        }, 2000);
+      }
+    });
+
+    return scene;
+  };
 
   createScene().then((scene) => {
     engine.runRenderLoop(function () {
