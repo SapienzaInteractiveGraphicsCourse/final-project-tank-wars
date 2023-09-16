@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 
-
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
@@ -10,23 +9,12 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
 
   <style>
+    html,
     body {
       margin: 0;
       padding: 0;
       overflow: hidden;
       font-family: 'Orbitron', sans-serif;
-    }
-
-    button {
-      font-size: 32px;
-      padding: 20px 50px;
-      background-color: #fff;
-      border: 0;
-      color: #000;
-      outline: none;
-      cursor: pointer;
-      font-family: 'Orbitron', sans-serif;
-      transition: all 0.3s ease;
     }
 
     #renderCanvas {
@@ -65,10 +53,52 @@
       font-family: 'Orbitron', sans-serif;
     }
 
+    #loadingHeading {
+      font-size: 30px;
+      color: #fff;
+      width: 100%;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    button {
+      font-size: 32px;
+      padding: 20px 50px;
+      background-color: #fff;
+      border: 0;
+      color: #000;
+      outline: none;
+      cursor: pointer;
+      font-family: 'Orbitron', sans-serif;
+      transition: all 0.3s ease;
+    }
+
+    #message {
+      text-align: center;
+      font-size: 42px;
+      color: #fff;
+      width: 100%;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    button:hover {
+      scale: 1.1;
+    }
+
+    button:active {
+      scale: 0.9;
+    }
+
     #healthBar {
       position: absolute;
       top: 10px;
       left: 10px;
+    }
+
+    #countScore {
+      position: absolute;
+      top: 0px;
+      right: 40px;
+      color: #fff;
     }
   </style>
 </head>
@@ -90,6 +120,14 @@
     </div>
   </div>
 
+  <div id="gameOverScreen" class="screenDiv" style="display: none;">
+    <div class="center">
+      <h1 id="heading">Tank Wars</h1>
+      <p id="message"></p>
+      <button id="restartBtn" onclick="window.location.reload()">Restart</button>
+    </div>
+  </div>
+
   <canvas id="renderCanvas"></canvas>
 
   <div id="healthBar" style="display: none;">
@@ -100,6 +138,10 @@
         Health</p>
     </div>
   </div>
+  <div id="countScore" style="display: none;">
+    <h1 id="countScoreHeading">0</h1>
+  </div>
+
   <script type="module" src="/js/main.js"></script>
 </body>
 

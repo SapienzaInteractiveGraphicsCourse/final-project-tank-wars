@@ -3,10 +3,17 @@ import HavokPhysics from './physics/HavokPhysics_es';
 
 import Obstacles from './obstacles';
 import Tank from './tank';
+
+
 class CustomLoadingScreen {
   constructor() {
     this._loadingDiv = document.getElementById("loadingScreen");
     this._loadingDivProgress = document.getElementById("loadingProgress");
+  }
+
+  displayLoadingUI() {
+    this._loadingDiv.style.display = "initial";
+    this._loadingDivProgress.style.width = "0px";
   }
 
   hideLoadingUI() {
@@ -15,15 +22,20 @@ class CustomLoadingScreen {
     let healthBar = document.getElementById('healthBar');
     let countScore = document.getElementById('countScore');
     healthBar.style.display = 'block';
-    //countScore.style.display = 'block'
+    countScore.style.display = 'block'
   }
+
+  loadingUIVisible() {
+    return this._loadingDiv.style.display == "initial";
+  }
+
   updateProgress(value) {
     this._loadingDivProgress.style.width = value + "%";
   }
 }
-function startGame() { 
-  
 
+
+function startGame() {
   const canvas = document.getElementById('renderCanvas');
   canvas.style.display = 'block';
   const engine = new BABYLON.Engine(canvas, true);
@@ -69,6 +81,20 @@ function startGame() {
     const shadowGenerator = new BABYLON.ShadowGenerator(1024, light);
     shadowGenerator.useBlurExponentialShadowMap = true;
 
+    // Load the sound and play it automatically once ready
+    const music = new BABYLON.Sound("Music", "/background.mp3", scene, null, {
+      loop: true,
+      autoplay: true,
+    });
+
+    //adding of vignette
+    var postProcess = new BABYLON.ImageProcessingPostProcess("processing", 1.0, camera);
+    postProcess.vignetteWeight = 3;
+    postProcess.vignetteColor = new BABYLON.Color4(0, 0, 0, 0);
+    postProcess.vignetteEnabled = true;
+
+
+    // HavokPhysics setup
     const havokInstance = await HavokPhysics();
     const hk = new BABYLON.HavokPlugin(true, havokInstance);
     scene.enablePhysics(new BABYLON.Vector3(0, -9.8, 0), hk);
@@ -78,13 +104,13 @@ function startGame() {
     floorMaterial.diffuseTexture = new BABYLON.Texture("/wood.jpg");
     const tiledGround = BABYLON.MeshBuilder.CreateTiledGround("ground",
       {
-        xmin: -100,
+        xmin: -150,
         zmin: -70,
-        xmax: 100,
+        xmax: 150,
         zmax: 120,
         subdivisions: {
           'h': 40,
-          'w': 50
+          'w': 80
         }
       }, scene);
     tiledGround.receiveShadows = true;
@@ -99,7 +125,7 @@ function startGame() {
 
     // Create obstacles
     scene.obstacles = new Obstacles(scene, shadowGenerator);
-    
+
     // Create tank
     scene.playerTank = new Tank("player", new BABYLON.Vector3(0, 2, 10), scene, shadowGenerator, true, canvas);
 
@@ -114,64 +140,66 @@ function startGame() {
     var pressBreak = false;
     var isShoot = false;
 
-      // Event listeners for key presses
-      window.addEventListener("keydown", function (event) {
-        switch (event.keyCode) {
-          case 87: // W
-            moveForward = true;
-            break;
-          case 83: // S
-            moveBackward = true;
-            break;
-          case 65: // A
-            rotateLeft = true;
-            break;
-          case 68: // D
-            rotateRight = true;
-            break;
-          case 32: // Space
-            pressBreak = true;
-            break;
-          case 70:
-            isShoot = true;
-            break;
-        }
-      });
+    // Event listeners for key presses
+    window.addEventListener("keydown", function (event) {
+      switch (event.keyCode) {
+        case 87: // W
+          moveForward = true;
+          break;
+        case 83: // S
+          moveBackward = true;
+          break;
+        case 65: // A
+          rotateLeft = true;
+          break;
+        case 68: // D
+          rotateRight = true;
+          break;
+        case 32: // Space
+          pressBreak = true;
+          break;
+        case 70:
+          isShoot = true;
+          break;
+      }
+    });
 
-      // Event listeners for key releases
-      window.addEventListener("keyup", function (event) {
-        switch (event.keyCode) {
-          case 87: // W
-            moveForward = false;
-            break;
-          case 83: // S
-            moveBackward = false;
-            break;
-          case 65: // A
-            rotateLeft = false;
-            break;
-          case 68: // D
-            rotateRight = false;
-            break;
-          case 32: // Space
-            pressBreak = false;
-            break;
-          case 70: // F
-            isShoot = false;
-            break;
-        }
-      });
-    
-      window.addEventListener("pointerdown", function (event) {
-        isShoot = true;
-      });
+    // Event listeners for key releases
+    window.addEventListener("keyup", function (event) {
+      switch (event.keyCode) {
+        case 87: // W
+          moveForward = false;
+          break;
+        case 83: // S
+          moveBackward = false;
+          break;
+        case 65: // A
+          rotateLeft = false;
+          break;
+        case 68: // D
+          rotateRight = false;
+          break;
+        case 32: // Space
+          pressBreak = false;
+          break;
+        case 70: // F
+          isShoot = false;
+          break;
+      }
+    });
 
-      window.addEventListener("pointerup", function (event) {
-        isShoot = false;
-      });
-       function createRandom(min, max) {
+    window.addEventListener("pointerdown", function (event) {
+      isShoot = true;
+    });
+
+    window.addEventListener("pointerup", function (event) {
+      isShoot = false;
+    });
+
+    function createRandom(min, max) {
       return Math.random() * (max - min) + min;
     }
+
     function addEnemy() {
       let positionX = createRandom(-25, 25);
       let positionZ = createRandom(42, 47);
@@ -246,7 +274,9 @@ function startGame() {
           clearInterval(scene.enemies[i].updateIntervel);
           scene.enemies.splice(i, 1);
           i--;
-         
+          let countScore = document.getElementById('countScoreHeading');
+          globalDefeatedEnemyCount++
+          countScore.innerHTML = globalDefeatedEnemyCount
           if (scene.enemies.length == 0) {
             if (currentEnemyCount === 1) {
               currentEnemyCount = 2;
@@ -283,7 +313,16 @@ function startGame() {
 
           let healthBar = document.getElementById('healthBar');
           healthBar.style.display = 'none';
-         
+
+          let countScore = document.getElementById('countScore');
+          countScore.style.display = 'none'
+
+          // show the game over screen
+          let gameOverScreen = document.getElementById('gameOverScreen');
+          gameOverScreen.style.display = 'block';
+          let message = document.getElementById('message');
+          message.innerHTML = 'You Lose! Final Score:'+ globalDefeatedEnemyCount;
+
         }, 2000);
       }
     });
@@ -300,7 +339,7 @@ function startGame() {
       engine.resize();
     });
   });
-}
+};
 
 let btn = document.getElementById('startBtn');
 btn.addEventListener('click', () => {
@@ -311,5 +350,4 @@ btn.addEventListener('click', () => {
   loadingScreen.style.display = 'block';
 
   startGame();
-
 })

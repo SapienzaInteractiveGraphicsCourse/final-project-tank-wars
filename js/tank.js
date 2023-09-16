@@ -2,10 +2,7 @@ import * as BABYLON from 'babylonjs';
 import { AdvancedDynamicTexture, Rectangle } from 'babylonjs-gui';
 
 class Tank {
-    
     constructor(name, startPosition, scene, shadowGenerator, isGunControlled = false, canvas = null) {
-        this.debug = false
-
         this.name = name;
         this.startPosition = startPosition;
         this.scene = scene;
@@ -129,44 +126,45 @@ class Tank {
         this.tank.physicsBody.setLinearDamping(0.5);
         //Angular damping reduces the rotation velocity over time
         this.tank.physicsBody.setAngularDamping(1);
+
         // Only the player enter in this "if"
         if (this.isGunControlled) {
             var that = this;
             let currentLookAt;
-            if (!this.debug) {
-                this.canvas.addEventListener("pointermove", function (event) {
-                    let pickResult = that.scene.pick(that.scene.pointerX, that.scene.pointerY);
 
-                    //it check if we are moving the mouse in the scene
-                    if (pickResult.hit) {
-                        let newLookAt = new BABYLON.Vector3(pickResult.pickedPoint.x, pickResult.pickedPoint.y, pickResult.pickedPoint.z);
+            this.canvas.addEventListener("pointermove", function (event) {
+                let pickResult = that.scene.pick(that.scene.pointerX, that.scene.pointerY);
 
-                        //here enter only the first time
-                        if (!currentLookAt) {
+                //it check if we are moving the mouse in the scene
+                if (pickResult.hit) {
+                    let newLookAt = new BABYLON.Vector3(pickResult.pickedPoint.x, pickResult.pickedPoint.y, pickResult.pickedPoint.z);
+
+                    //here enter only the first time
+                    if (!currentLookAt) {
+                        currentLookAt = newLookAt;
+                    }
+
+                    // Start a loop that will interpolate the rotation over time: creates a smooth animation that rotates the tank's gun
+                    let lerpValue = 0;
+                    let lerpSpeed = 0.01;  // Adjust speed as needed
+                    const lerpLoop = () => {
+                        lerpValue += lerpSpeed;
+                        currentLookAt = BABYLON.Vector3.Lerp(currentLookAt, newLookAt, lerpValue);
+
+                        that.rotateGun(currentLookAt);
+
+                        // Stop the loop when lerpValue is equal or greater than 1
+                        if (lerpValue < 1) {
+                            requestAnimationFrame(lerpLoop);
+                        } else {
                             currentLookAt = newLookAt;
                         }
-
-                        // Start a loop that will interpolate the rotation over time: creates a smooth animation that rotates the tank's gun
-                        let lerpValue = 0;
-                        let lerpSpeed = 0.01;  // Adjust speed as needed
-                        const lerpLoop = () => {
-                            lerpValue += lerpSpeed;
-                            currentLookAt = BABYLON.Vector3.Lerp(currentLookAt, newLookAt, lerpValue);
-
-                            that.rotateGun(currentLookAt);
-
-                            // Stop the loop when lerpValue is equal or greater than 1
-                            if (lerpValue < 1) {
-                                requestAnimationFrame(lerpLoop);
-                            } else {
-                                currentLookAt = newLookAt;
-                            }
-                        };
-                        requestAnimationFrame(lerpLoop);
-                    }
-                });
-            }
+                    };
+                    requestAnimationFrame(lerpLoop);
+                }
+            });
         }
+
         if (this.name !== "player") {
             // Create health bar
             const healthBarWidth = 100;
@@ -204,7 +202,139 @@ class Tank {
         }
     }
 
-     createBullet() {
+    //calculates the transformed three-dimensional force vector based on the rotation of a mesh
+    transformForce(mesh, vec) {
+        if (this.tank.health <= 0) {
+            return;
+        }
+
+        var mymatrix = new BABYLON.Matrix();
+        mesh.rotationQuaternion.toRotationMatrix(mymatrix);
+        return BABYLON.Vector3.TransformNormal(vec, mymatrix);
+    };
+
+    updateHealthBar() {
+        if (this.tank.health >= 0 && this.name !== "player") {
+            const healthPercentage = this.tank.health / 100;
+            const healthBarWidth = 100; // Or any desired max width
+            const newWidth = healthBarWidth * healthPercentage;
+            this.healthBar.width = `${newWidth}px`;
+            // align it to the left
+            // Calculate the position from the left edge based on health percentage
+            const maxOffsetX = healthBarWidth / 2;
+            const currentOffsetX = maxOffsetX - (newWidth / 2);
+            this.healthBar.linkOffsetX = `-${currentOffsetX}px`;
+        }
+    }
+
+    rotateGun(lookAt) {
+        if (this.tank.health <= 0) {
+            return;
+        }
+
+        let forward = new BABYLON.Vector3(0, 0, 1);
+        //take the current rotation angle
+        let tankForward = this.tank.rotationQuaternion.toEulerAngles().y;
+        //update the direction in baseon on the rotation of the tank
+        forward = BABYLON.Vector3.TransformNormal(forward, BABYLON.Matrix.RotationAxis(BABYLON.Axis.Y, tankForward));
+
+        //direction in which the tank's gun should point
+        let direction = lookAt.subtract(this.tank.getAbsolutePosition());
+        direction.y = 0;
+        direction.normalize();
+
+        let angle = Math.acos(BABYLON.Vector3.Dot(forward, direction));
+
+        //cross is used in order to understand if the direction of mouvement is: hours,counterclockwise
+        let cross = BABYLON.Vector3.Cross(forward, direction);
+        if (cross.y < 0) angle *= -1;
+
+        if (angle < -1.2) angle = -1.2;
+        if (angle > 1.2) angle = 1.2;
+
+        // Apply the calculated rotation to the tank turret transform node.
+        this.tank.getChildTransformNodes()[2].rotation.y = angle;
+    }
+
+    rotateTank(lookAt) {
+        if (this.tank.health <= 0) {
+            return;
+        }
+
+        let forward = new BABYLON.Vector3(0, 0, 1);
+        let tankForward = this.tank.rotationQuaternion.toEulerAngles().y;
+        forward = BABYLON.Vector3.TransformNormal(forward, BABYLON.Matrix.RotationAxis(BABYLON.Axis.Y, tankForward));
+
+        let direction = lookAt.subtract(this.tank.getAbsolutePosition());
+        direction.y = 0;
+        direction.normalize();
+
+        let angle = Math.acos(BABYLON.Vector3.Dot(forward, direction));
+        this.tank.physicsBody.setAngularVelocity(new BABYLON.Vector3(0, angle, 0), this.tank.getAbsolutePosition());
+    }
+
+    rotate(mesh, direction, power) {
+        if (this.tank.health <= 0) {
+            return;
+        }
+
+        let velocity = new BABYLON.Vector3(0, 0, 0);
+        // Get the current angular velocity of the mesh and store it in the "velocity" vector.
+        mesh.physicsBody.getAngularVelocityToRef(velocity);
+
+        if (velocity.length() > this.maxRotationSpeed) {
+            return;
+        }
+        //compute the angular force and add it with the current angular velocity
+        mesh.physicsBody.setAngularVelocity(
+            this.transformForce(mesh, direction.scale(power)).add(velocity),
+            mesh.getAbsolutePosition()
+        );
+    }
+
+    translate(mesh, direction, power) {
+        if (this.tank.health <= 0) {
+            return;
+        }
+
+        let velocity = new BABYLON.Vector3(0, 0, 0);
+        mesh.physicsBody.getLinearVelocityToRef(velocity);
+
+        if (velocity.length() > this.maxTankSpeed) {
+            return;
+        }
+
+        mesh.physicsBody.setLinearVelocity(
+            this.transformForce(mesh, direction.scale(power)).add(velocity),
+            mesh.getAbsolutePosition()
+        );
+    }
+
+    //this function permit to brake (frenare) 
+    applyBreak(mesh, power) {
+        if (this.tank.health <= 0) {
+            return;
+        }
+
+        let velocity = new BABYLON.Vector3(0, 0, 0);
+        mesh.physicsBody.getLinearVelocityToRef(velocity);
+        //change velocity direction
+        velocity.scaleInPlace(-1);
+        //permit to have a constant decelleration
+        velocity.normalize();
+        //increase decelleration:  velocity * power
+        velocity.scaleInPlace(power);
+        //start the decelleration
+        mesh.physicsBody.applyImpulse(
+            velocity,
+            mesh.getAbsolutePosition()
+        );
+    }
+
+    createBullet() {
+        if (this.tank.health <= 0) {
+            return;
+        }
 
         let bullet = BABYLON.MeshBuilder.CreateCylinder("bullet", { diameter: 0.2, height: 0.8 }, this.scene);
         bullet.material = new BABYLON.StandardMaterial("bulletMaterial", this.scene);
@@ -271,127 +401,12 @@ class Tank {
             }
         });
     }
-    translate(mesh, direction, power) {
 
-        let velocity = new BABYLON.Vector3(0, 0, 0);
-        mesh.physicsBody.getLinearVelocityToRef(velocity);
-
-        if (velocity.length() > this.maxTankSpeed) {
-            return;
-        }
-
-        mesh.physicsBody.setLinearVelocity(
-            this.transformForce(mesh, direction.scale(power)).add(velocity),
-            mesh.getAbsolutePosition()
-        );
-    }
-
-    //this function permit to brake (frenare) 
-    applyBreak(mesh, power) {
-        if (this.tank.health <= 0) {
-            return;
-        }
-
-        let velocity = new BABYLON.Vector3(0, 0, 0);
-        mesh.physicsBody.getLinearVelocityToRef(velocity);
-        //change velocity direction
-        velocity.scaleInPlace(-1);
-        //permit to have a constant decelleration
-        velocity.normalize();
-        //increase decelleration:  velocity * power
-        velocity.scaleInPlace(power);
-        //start the decelleration
-        mesh.physicsBody.applyImpulse(
-            velocity,
-            mesh.getAbsolutePosition()
-        );
-    }
-
-    //calculates the transformed three-dimensional force vector based on the rotation of a mesh
-    transformForce(mesh, vec) {
-       
-        var mymatrix = new BABYLON.Matrix();
-        mesh.rotationQuaternion.toRotationMatrix(mymatrix);
-        return BABYLON.Vector3.TransformNormal(vec, mymatrix);
-    };
-    updateHealthBar() {
-        if (this.tank.health >= 0 && this.name !== "player") {
-            const healthPercentage = this.tank.health / 100;
-            const healthBarWidth = 100; // Or any desired max width
-            const newWidth = healthBarWidth * healthPercentage;
-            this.healthBar.width = `${newWidth}px`;
-            // align it to the left
-            // Calculate the position from the left edge based on health percentage
-            const maxOffsetX = healthBarWidth / 2;
-            const currentOffsetX = maxOffsetX - (newWidth / 2);
-            this.healthBar.linkOffsetX = `-${currentOffsetX}px`;
-        }
-    }
-
-    rotateTank(lookAt) {
-        if (this.tank.health <= 0) {
-            return;
-        }
-
-        let forward = new BABYLON.Vector3(0, 0, 1);
-        let tankForward = this.tank.rotationQuaternion.toEulerAngles().y;
-        forward = BABYLON.Vector3.TransformNormal(forward, BABYLON.Matrix.RotationAxis(BABYLON.Axis.Y, tankForward));
-
-        let direction = lookAt.subtract(this.tank.getAbsolutePosition());
-        direction.y = 0;
-        direction.normalize();
-
-        let angle = Math.acos(BABYLON.Vector3.Dot(forward, direction));
-        this.tank.physicsBody.setAngularVelocity(new BABYLON.Vector3(0, angle, 0), this.tank.getAbsolutePosition());
-    }
-
-    rotateGun(lookAt) {
-        if (this.tank.health <= 0) {
-            return;
-        }
-
-        let forward = new BABYLON.Vector3(0, 0, 1);
-        //take the current rotation angle
-        let tankForward = this.tank.rotationQuaternion.toEulerAngles().y;
-        //update the direction in baseon on the rotation of the tank
-        forward = BABYLON.Vector3.TransformNormal(forward, BABYLON.Matrix.RotationAxis(BABYLON.Axis.Y, tankForward));
-
-        //direction in which the tank's gun should point
-        let direction = lookAt.subtract(this.tank.getAbsolutePosition());
-        direction.y = 0;
-        direction.normalize();
-
-        let angle = Math.acos(BABYLON.Vector3.Dot(forward, direction));
-
-        //cross is used in order to understand if the direction of mouvement is: hours,counterclockwise
-        let cross = BABYLON.Vector3.Cross(forward, direction);
-        if (cross.y < 0) angle *= -1;
-
-        if (angle < -1.2) angle = -1.2;
-        if (angle > 1.2) angle = 1.2;
-
-        // Apply the calculated rotation to the tank turret transform node.
-        this.tank.getChildTransformNodes()[2].rotation.y = angle;
-    }
-
-    rotate(mesh, direction, power) {
-        
-
-        let velocity = new BABYLON.Vector3(0, 0, 0);
-        // Get the current angular velocity of the mesh and store it in the "velocity" vector.
-        mesh.physicsBody.getAngularVelocityToRef(velocity);
-
-        if (velocity.length() > this.maxRotationSpeed) {
-            return;
-        }
-        //compute the angular force and add it with the current angular velocity
-        mesh.physicsBody.setAngularVelocity(
-            this.transformForce(mesh, direction.scale(power)).add(velocity),
-            mesh.getAbsolutePosition()
-        );
-    }
-
+    //permit to move the tank and to refresh the health
     update(mf, mb, rl, rr, br, isShoot) {
+        if (this.tank.health <= 0) {
+            return;
+        }
         //linear
         let v1 = new BABYLON.Vector3(0, 0, 0);
         //angular
@@ -464,10 +479,8 @@ class Tank {
         }
         this.tank.previousPosition = this.tank.position.clone();
 
-       this.updateHealthBar();
+        this.updateHealthBar();
     }
-
-    
 }
 
 export default Tank;
