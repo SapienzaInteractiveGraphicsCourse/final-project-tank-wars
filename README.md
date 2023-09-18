@@ -27,4 +27,4 @@ We **recommend** to play the game on Chrome for better performances.
 
 ## Documentation
 
-Please read the [Report.pdf](./Report.pdf) file.
+Please read our [Report](./Tank Wars Report.pdf) about the project.
