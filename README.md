@@ -15,7 +15,7 @@ Click here to play the demo of the game [Game demo link](https://sapienzainterac
 
 - W: Allows to move the tank forward.
 - A: Allows to move the tank left.
-- S: Allows to move the tank backward.
+- S: Allows to move the tank backwards.
 - D: Allows to move the tank right.
 - F / Mouse click: Allows to shoot with the tank.
 - Space: Allows to brake the tank.
@@ -27,4 +27,4 @@ We **recommend** to play the game on Chrome for better performances.
 
 ## Documentation
 
-Please read our [Report](./Tank Wars Report.pdf) about the project.
+Please read our [Report](./Tank%20Wars%20Report.pdf) about the project.
