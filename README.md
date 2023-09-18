@@ -11,7 +11,7 @@ Click here to play the demo of the game [Game demo link](https://sapienzainterac
 - Paolo Caruso 1843152
 - Cristian Fioravanti 1861593
 
-# Commands
+# Commands:
 
 - W: Allows to move the tank forward.
 - A: Allows to move the tank left.
