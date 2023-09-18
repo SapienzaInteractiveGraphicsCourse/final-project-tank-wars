@@ -13,8 +13,13 @@ Click here to play the demo of the game [Game demo link](https://sapienzainterac
 
 # Commands
 
-- **_W A S D_** : Move the tank
-- **_CLICK_**: To fire
+- W: Allows to move the tank forward.
+- A: Allows to move the tank left.
+- S: Allows to move the tank backward.
+- D: Allows to move the tank right.
+- F / Mouse click: Allows to shoot with the tank.
+- Space: Allows to brake the tank.
+- Mouse position: Allows you to direct the tank’s gun toward that position.
 
 ## Browsers
 
