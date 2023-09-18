@@ -22,4 +22,4 @@ We **recommend** to play the game on Chrome for better performances.
 
 ## Documentation
 
-Please read the [Report.pdf](./Report.pdf) file.s
+Please read the [Report.pdf](./Report.pdf) file.
